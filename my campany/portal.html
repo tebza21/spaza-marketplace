@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Portal | Spaza</title><link rel="stylesheet" href="css/style.css"></head><body>
+<header class="header compact"><a class="brand" href="index.html"><img src="images/spaza-logo.png"></a><nav id="nav"></nav></header>
+<main class="simple-page"><p class="eyebrow">SPAZA PORTAL</p><h1>My Portal</h1><p id="user"></p><div id="cards" class="steps"></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/roles.js"></script>
+<script>(async()=>{try{const r=await getSessionRoles();if(!r.user){location.href='login.html?redirect=portal.html';return}nav.innerHTML=roleNav(r.codes);user.textContent=r.user.email;
+let h='<div><h2>Customer</h2><p>Shop, cart, orders, account, reviews and support.</p><a class="btn primary" href="account.html">My Account</a></div>';
+if(r.codes.includes('SELLER'))h+='<div><h2>Seller Centre</h2><p>Products, inventory, orders, delivery, finance, advertising and performance.</p><a class="btn primary" href="seller-centre.html">Open Seller Centre</a></div>';
+if(r.codes.some(x=>['OWNER','ADMIN','FINANCE','MARKETING','PRODUCT_MANAGER','SUPPORT'].includes(x)))h+='<div><h2>Admin Centre</h2><p>Full marketplace administration, sellers, customers, finance, accounting, advertising, delivery, support and security.</p><a class="btn primary" href="admin.html">Open Admin Centre</a></div>';
+cards.innerHTML=h}catch(e){cards.textContent=e.message}})();</script></body></html>

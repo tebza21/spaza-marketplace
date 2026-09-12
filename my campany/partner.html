@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Become a Partner | Spaza</title><link rel="stylesheet" href="css/style.css"></head><body>
+<header class="header compact"><a class="brand" href="index.html"><img src="images/spaza-logo.png"></a><a href="auth-choice.html">Sign In</a><a href="portal.html">My Portal</a><a href="auth-choice.html" id="authLink">Sign In</a><a href="auth-choice.html">Create Account</a></header>
+<main class="simple-page"><a href="index.html">← Home</a><h1>Become a Spaza Partner</h1><p>Apply to sell products on the central Spaza marketplace.</p>
+<form id="form" class="application-card">
+<input id="business_name" required placeholder="Business name"><input id="contact_email" required type="email" placeholder="Business email"><input id="contact_phone" placeholder="Phone"><input id="business_type" placeholder="Business type">
+<textarea id="business_description" placeholder="Tell us about your business"></textarea><textarea id="requested_categories" placeholder="Products/categories you want to sell"></textarea><textarea id="delivery_capabilities" placeholder="Delivery / pickup capabilities"></textarea>
+<button class="btn primary" type="submit">Submit Application</button><p id="msg"></p></form><section class="application-card"><h2>My Applications</h2><div id="apps">Sign in to view applications.</div></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/seller.js"></script>
+<script>
+const f=document.getElementById("form"),m=document.getElementById("msg");
+f.onsubmit=async e=>{e.preventDefault();m.textContent="Submitting…";try{const a=await submitSellerApplication({business_name:business_name.value,contact_email:contact_email.value,contact_phone:contact_phone.value,business_type:business_type.value,business_description:business_description.value,requested_categories:requested_categories.value,delivery_capabilities:delivery_capabilities.value});m.textContent="Application "+a.application_number+" submitted.";loadApps()}catch(x){m.textContent=x.message}};
+async function loadApps(){try{const a=await mySellerApplications();document.getElementById("apps").innerHTML=a.length?a.map(x=>"<p><b>"+x.application_number+"</b> — "+x.verification_status+"</p>").join(""):"No applications yet."}catch(e){document.getElementById("apps").textContent=e.message}}
+loadApps();
+</script></body></html>

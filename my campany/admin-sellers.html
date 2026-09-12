@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sellers & Applications | Spaza</title><link rel="stylesheet" href="css/style.css">
+<style>
+.sa-wrap{max-width:1400px;margin:auto}.sa-top{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:22px 0 30px}.sa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}.sa-stat{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.05)}.sa-stat b{font-size:30px;display:block}.sa-stat span{color:#6b7280}.sa-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.sa-toolbar input,.sa-toolbar select{padding:11px 13px;border:1px solid #d7dce2;border-radius:10px;min-width:210px}.sa-table{width:100%;border-collapse:collapse}.sa-table th,.sa-table td{padding:13px 10px;border-bottom:1px solid #eceff2;text-align:left;vertical-align:top}.sa-table th{font-size:13px;color:#6b7280}.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700}.pending{background:#fff4cc}.active{background:#dcfce7}.rejected{background:#fee2e2}.review{background:#e0e7ff}.sa-actions{display:flex;gap:7px;flex-wrap:wrap}.sa-detail{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-top:12px}.sa-empty{padding:25px;text-align:center;color:#6b7280}.sa-success{padding:12px;border-radius:10px;background:#dcfce7;margin-bottom:15px}.sa-error{padding:12px;border-radius:10px;background:#fee2e2;margin-bottom:15px}.sa-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:999}.sa-modal.open{display:flex}.sa-modal-card{background:#fff;border-radius:18px;padding:25px;max-width:800px;width:100%;max-height:90vh;overflow:auto}.sa-kv{display:grid;grid-template-columns:160px 1fr;gap:8px;margin:8px 0}.sa-kv strong{color:#6b7280}@media(max-width:800px){.sa-grid{grid-template-columns:repeat(2,1fr)}.sa-table{min-width:850px}.sa-table-wrap{overflow:auto}.sa-top{align-items:start;flex-direction:column}}@media(max-width:480px){.sa-grid{grid-template-columns:1fr 1fr}.sa-stat b{font-size:24px}}
+</style></head>
+<body>
+<header class="header compact"><a class="brand" href="admin.html"><img src="images/spaza-logo.png" alt="Spaza"></a><a href="index.html">Public Site</a><a href="admin.html">Admin Centre</a></header>
+<main class="simple-page sa-wrap">
+<a href="admin.html">← Admin Centre</a>
+<div class="sa-top"><div><p class="eyebrow">PARTNER MANAGEMENT</p><h1>Sellers & Applications</h1><p>Manage the complete application → approval → seller relationship.</p></div><button class="btn" onclick="load()">↻ Refresh</button></div>
+<div id="notice"></div>
+<div class="sa-grid">
+<div class="sa-stat"><b id="pendingCount">0</b><span>Pending applications</span></div>
+<div class="sa-stat"><b id="reviewCount">0</b><span>Under review / action required</span></div>
+<div class="sa-stat"><b id="activeCount">0</b><span>Active sellers</span></div>
+<div class="sa-stat"><b id="suspendedCount">0</b><span>Suspended sellers</span></div>
+</div>
+
+<section class="application-card">
+<div class="section-title"><div><p class="eyebrow">APPLICATION PIPELINE</p><h2>Seller Applications</h2></div></div>
+<div class="sa-toolbar"><input id="search" placeholder="Search application, business, email..." oninput="render()"><select id="statusFilter" onchange="render()"><option value="ALL">All statuses</option><option value="PENDING">Pending</option><option value="UNDER_REVIEW">Under review</option><option value="ACTION_REQUIRED">Action required</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option></select></div>
+<div class="sa-table-wrap"><table class="sa-table"><thead><tr><th>Application</th><th>Business</th><th>Applicant</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead><tbody id="applications"></tbody></table></div>
+</section>
+
+<section class="application-card">
+<div class="section-title"><div><p class="eyebrow">MARKETPLACE PARTNERS</p><h2>Active & Suspended Sellers</h2></div></div>
+<div class="sa-table-wrap"><table class="sa-table"><thead><tr><th>Seller</th><th>Business</th><th>Contact</th><th>Rating</th><th>Status</th><th>Linked application</th><th>Action</th></tr></thead><tbody id="sellers"></tbody></table></div>
+</section>
+</main>
+
+<div class="sa-modal" id="modal"><div class="sa-modal-card"><div style="display:flex;justify-content:space-between;gap:10px"><h2 id="modalTitle">Application</h2><button class="btn" onclick="closeModal()">Close</button></div><div id="modalBody"></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/admin.js"></script>
+<script>
+let apps=[],sellers=[];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=d=>d?new Date(d).toLocaleString('en-ZA'):'—';
+function badge(s){let c=s==='ACTIVE'?'active':s==='REJECTED'?'rejected':s==='UNDER_REVIEW'?'review':'pending';return `<span class="badge ${c}">${esc(s)}</span>`}
+async function load(){
+ const n=document.getElementById('notice');n.textContent='Loading…';
+ try{await requireStaff();
+  const [ar,sr]=await Promise.all([
+   SpazaDB.from('seller_applications').select('*').order('created_at',{ascending:false}),
+   SpazaDB.from('sellers').select('*').order('created_at',{ascending:false})
+  ]);
+  if(ar.error)throw ar.error;if(sr.error)throw sr.error;
+  apps=ar.data||[];sellers=sr.data||[];
+  n.textContent='';
+  document.getElementById('pendingCount').textContent=apps.filter(x=>x.verification_status==='PENDING').length;
+  document.getElementById('reviewCount').textContent=apps.filter(x=>['UNDER_REVIEW','ACTION_REQUIRED'].includes(x.verification_status)).length;
+  document.getElementById('activeCount').textContent=sellers.filter(x=>x.status==='ACTIVE').length;
+  document.getElementById('suspendedCount').textContent=sellers.filter(x=>x.status==='SUSPENDED').length;
+  render();
+ }catch(e){n.className='sa-error';n.textContent='Could not load seller administration: '+e.message}
+}
+function render(){
+ const q=(document.getElementById('search').value||'').toLowerCase(),f=document.getElementById('statusFilter').value;
+ const list=apps.filter(a=>(f==='ALL'||a.verification_status===f)&&(!q||[a.application_number,a.business_name,a.contact_email,a.contact_phone].join(' ').toLowerCase().includes(q)));
+ document.getElementById('applications').innerHTML=list.length?list.map(a=>`<tr><td><b>${esc(a.application_number)}</b><br><small>${esc(a.profile_id)}</small></td><td><b>${esc(a.business_name)}</b><br><small>${esc(a.business_type||'')}</small></td><td>${esc(a.contact_email)}<br>${esc(a.contact_phone||'')}</td><td>${fmt(a.created_at)}</td><td>${badge(a.verification_status)}</td><td><div class="sa-actions"><button class="btn small" onclick="viewApp('${a.id}')">Review</button>${['PENDING','UNDER_REVIEW','ACTION_REQUIRED'].includes(a.verification_status)?`<button class="btn primary small" onclick="approve('${a.id}')">Approve</button><button class="btn small" onclick="rejectApp('${a.id}')">Reject</button>`:''}</div></td></tr>`).join(''):'<tr><td colspan="6" class="sa-empty">No applications match your filters.</td></tr>';
+ document.getElementById('sellers').innerHTML=sellers.length?sellers.map(s=>{const a=apps.find(x=>x.profile_id===s.profile_id&&x.verification_status==='APPROVED');return `<tr><td><b>${esc(s.seller_number)}</b></td><td><b>${esc(s.business_name)}</b></td><td>${esc(s.email||'—')}<br>${esc(s.phone||'')}</td><td>⭐ ${Number(s.rating||0).toFixed(1)} <small>(${s.total_reviews||0})</small></td><td>${badge(s.status)}</td><td>${a?esc(a.application_number):'—'}</td><td><button class="btn small" onclick="viewSeller('${s.id}')">View</button></td></tr>`}).join(''):'<tr><td colspan="7" class="sa-empty">No seller accounts yet. Approve a pending application to create one automatically.</td></tr>';
+}
+function viewApp(id){const a=apps.find(x=>x.id===id);if(!a)return;document.getElementById('modalTitle').textContent=a.application_number;document.getElementById('modalBody').innerHTML=`<div class="sa-detail">${[['Business',a.business_name],['Description',a.business_description],['Email',a.contact_email],['Phone',a.contact_phone],['Business type',a.business_type],['Requested categories',a.requested_categories],['Delivery',a.delivery_capabilities],['Status',a.verification_status],['Submitted',fmt(a.created_at)],['Notes',a.review_notes||'—'],['Rejection reason',a.rejection_reason||'—']].map(x=>`<div class="sa-kv"><strong>${esc(x[0])}</strong><span>${esc(x[1])}</span></div>`).join('')}</div>${['PENDING','UNDER_REVIEW','ACTION_REQUIRED'].includes(a.verification_status)?`<div class="sa-actions" style="margin-top:15px"><button class="btn primary" onclick="approve('${a.id}');closeModal()">Approve & Create Seller</button><button class="btn" onclick="rejectApp('${a.id}');closeModal()">Reject</button></div>`:''}`;document.getElementById('modal').classList.add('open')}
+function viewSeller(id){const s=sellers.find(x=>x.id===id);if(!s)return;document.getElementById('modalTitle').textContent=s.business_name;document.getElementById('modalBody').innerHTML=`<div class="sa-detail">${[['Seller number',s.seller_number],['Business',s.business_name],['Email',s.email],['Phone',s.phone],['Status',s.status],['Rating',s.rating],['Reviews',s.total_reviews],['Profile ID',s.profile_id]].map(x=>`<div class="sa-kv"><strong>${esc(x[0])}</strong><span>${esc(x[1])}</span></div>`).join('')}</div>`;document.getElementById('modal').classList.add('open')}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+async function approve(id){if(!confirm('Approve this application? This creates/activates the seller and assigns the SELLER role.'))return;try{const {data,error}=await SpazaDB.rpc('approve_seller_application',{p_application_id:id,p_review_notes:null});if(error)throw error;document.getElementById('notice').className='sa-success';document.getElementById('notice').textContent=`Approved ${data.application_number}. Seller ${data.seller_number} is now ACTIVE.`;await load()}catch(e){document.getElementById('notice').className='sa-error';document.getElementById('notice').textContent='Approval failed: '+e.message}}
+async function rejectApp(id){const reason=prompt('Reason for rejection:');if(!reason)return;try{const {data,error}=await SpazaDB.rpc('reject_seller_application',{p_application_id:id,p_reason:reason});if(error)throw error;document.getElementById('notice').className='sa-success';document.getElementById('notice').textContent=`${data.application_number} rejected.`;await load()}catch(e){document.getElementById('notice').className='sa-error';document.getElementById('notice').textContent='Rejection failed: '+e.message}}
+load();
+</script></body></html>

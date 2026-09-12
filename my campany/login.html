@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spaza — Sign In</title><link rel="stylesheet" href="css/style.css"></head><body><div style="max-width:900px;margin:12px auto;padding:0 16px;"><a href="auth-choice.html" style="text-decoration:none;">← Back to account options</a></div>
+<header class="header compact"><a class="brand" href="index.html"><img src="images/spaza-logo.png"></a><a href="auth-choice.html">Account Types</a></header>
+<main class="simple-page"><div class="application-card"><p class="eyebrow" id="eyebrow">SPAZA ACCOUNT</p><h1 id="title">Sign In</h1><p id="hint"></p>
+<form id="authForm"><input id="email" type="email" required placeholder="Email address"><input id="password" type="password" required minlength="8" placeholder="Password"><input id="name" style="display:none" placeholder="Full name"><button id="submit" class="btn primary" type="submit">Sign In</button></form>
+<p id="msg"></p><p id="switch"></p></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script>
+<script>
+const authRedirect = new URLSearchParams(location.search).get('error');
+if (authRedirect) {
+  const m = document.getElementById('msg');
+  m.textContent = 'Your previous authentication link has expired. Please sign in again with your email and password.';
+}
+const q=new URLSearchParams(location.search), requestedRole=q.get('role'), mode=q.get('mode')||'signin';
+const eyebrowEl=document.getElementById('eyebrow');
+const titleEl=document.getElementById('title');
+const hintEl=document.getElementById('hint');
+const formEl=document.getElementById('authForm');
+const emailEl=document.getElementById('email');
+const passwordEl=document.getElementById('password');
+const nameEl=document.getElementById('name');
+const submitEl=document.getElementById('submit');
+const msgEl=document.getElementById('msg');
+let role=requestedRole||'customer';
+const labels={customer:['🛒 Customer','Customer Account'],vendor:['🏪 Vendor / Seller','Vendor Account'],admin:['🛡️ Admin / Staff','Admin / Staff Account']};
+const [icon,label]=labels[role]||labels.customer; eyebrowEl.textContent=icon+' '+label.toUpperCase();
+let signup=mode==='signup' && role!=='admin';
+titleEl.textContent=signup?(role==='vendor'?'Create Account & Become a Vendor':'Create Customer Account'):(role==='admin'?'Admin / Staff Sign In':role==='vendor'?'Vendor Sign In':'Customer Sign In');
+hintEl.textContent=signup?(role==='vendor'?'First create your personal account. You will then submit a vendor application for approval.':'Create your own personal Spaza account.'):'Use your own Spaza email and password.';
+nameEl.style.display=signup?'block':'none'; nameEl.required=signup; submitEl.textContent=signup?'Create Account':'Sign In';
+const switchEl=document.getElementById('switch'); if(!signup)switchEl.innerHTML=role==='admin'?'Authorised Spaza staff only.':'Need an account? <a href="login.html?mode=signup&role='+role+'">'+(role==='vendor'?'Become a Vendor':'Create an Account')+'</a>';
+formEl.onsubmit=async e=>{e.preventDefault();msgEl.textContent='Please wait…';try{
+if(signup){const r=await SpazaDB.auth.signUp({email:emailEl.value,password:passwordEl.value,options:{data:{full_name:nameEl.value}}});if(r.error)throw r.error;msgEl.textContent=r.data.session?'Account created.': 'Account created. Check your email if confirmation is enabled.';if(r.data.session)location.href=role==='vendor'?'partner.html':'portal.html';}
+else{const r=await SpazaDB.auth.signInWithPassword({email:emailEl.value,password:passwordEl.value});if(r.error)throw r.error;
+if(role==='admin'){const {data:rs}=await SpazaDB.from('profile_roles').select('roles(code)').eq('profile_id',r.data.user.id);const ok=(rs||[]).some(x=>['OWNER','ADMIN','FINANCE','MARKETING','PRODUCT_MANAGER','SUPPORT'].includes(x.roles?.code));if(!ok){await SpazaDB.auth.signOut();throw new Error('This account is not authorised for Admin / Staff access.');}}
+const {data:rs}=await SpazaDB.from('profile_roles').select('roles(code)').eq('profile_id',r.data.user.id);
+const codes=(rs||[]).map(x=>x.roles?.code).filter(Boolean);
+if(!requestedRole){
+  if(codes.some(c=>['OWNER','ADMIN','FINANCE','MARKETING','PRODUCT_MANAGER','SUPPORT'].includes(c))) role='admin';
+  else if(codes.includes('SELLER')) role='vendor';
+  else role='customer';
+}
+if(role==='vendor' && !codes.includes('SELLER')){location.href='partner.html';return;}
+location.href=role==='admin'?'admin.html':role==='vendor'?'seller-centre.html':'portal.html';}}
+catch(x){console.error('Spaza sign-in error:',x);msgEl.textContent=x?.message||'Sign in failed. Please check your email and password.'}};
+</script></body></html>

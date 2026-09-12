@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Account | Spaza</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="header compact"><a class="brand" href="index.html"><img src="images/spaza-logo.png" alt="Spaza"></a><div class="header-actions"><a href="cart.html">🛒 Cart</a></div><a href="portal.html">My Portal</a><a href="auth-choice.html" id="authLink">Sign in</a></header>
+<nav class="nav"><button class="menu-btn" id="menuBtn">☰</button><div class="nav-links"><a href="index.html">Home</a><a href="shop.html">Shop</a><a class="active" href="account.html">Account</a><a href="orders.html">Orders</a><a href="help.html">Help</a></div></nav>
+<aside class="drawer" id="drawer"><div class="drawer-head"><strong>MY SPAZA</strong><button id="closeMenu">✕</button></div>
+<a href="index.html">🏠 Home</a><a href="shop.html">🛍️ Shop</a><a href="shop.html?deals=true">🔥 Deals</a><a href="cart.html">🛒 Cart</a><a href="orders.html">📦 My Orders</a><a href="account.html">👤 My Account</a><a href="partner.html">🤝 Become a Partner</a><a href="help.html">❓ Help</a>
+</aside><div class="overlay" id="overlay"></div>
+<main class="simple-page"><p class="eyebrow">CUSTOMER CENTRE</p><h1 id="welcome">My Account</h1>
+<div class="steps">
+<div><b>👤</b><h3>Profile</h3><p id="profileInfo">Loading…</p></div>
+<div><b>📦</b><h3>Orders</h3><p>View and track your Spaza orders.</p><a class="btn" href="orders.html">View Orders</a></div>
+<div><b>❤️</b><h3>Wishlist</h3><p>Your saved products will appear here.</p><button class="btn" onclick="alert('Wishlist is ready for the next database module.')">Open Wishlist</button></div>
+<div><b>📍</b><h3>Addresses</h3><p>Manage delivery addresses.</p><button class="btn" onclick="alert('Address management will use customer_addresses.')">Manage Addresses</button></div>
+</div>
+<button id="logout" class="btn">Log Out</button>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/supabase-auth.js"></script><script src="js/app.js"></script>
+<script>
+(async()=>{
+ try{
+  const user=await getCurrentUser();
+  if(!user){location.href="auth-choice.html";return;}
+  document.getElementById("welcome").textContent="Welcome, "+(user.user_metadata?.full_name||user.email);
+  document.getElementById("profileInfo").textContent=user.email;
+ }catch(e){document.getElementById("profileInfo").textContent=e.message;}
+})();
+document.getElementById("logout").onclick=async()=>{await signOut();location.href="index.html";};
+</script></body></html>

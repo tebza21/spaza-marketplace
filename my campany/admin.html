@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Centre | Spaza</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="header compact"><a class="brand" href="index.html"><img src="images/spaza-logo.png" alt="Spaza"></a><div class="header-actions"><a href="account.html">👤 Account</a></div></header>
+<nav class="nav"><button class="menu-btn" id="menuBtn">☰</button><div class="nav-links"><a class="active" href="admin.html">Admin Centre</a><a href="shop.html">Marketplace</a><a href="index.html">Public Site</a></div></nav>
+<aside class="drawer" id="drawer"><div class="drawer-head"><strong>ADMIN CENTRE</strong><button id="closeMenu">✕</button></div>
+<a href="admin.html">📊 Dashboard</a><a href="admin-products.html">🛍️ Products</a><a href="admin-sellers.html">🤝 Sellers</a><a href="admin.html#orders">📦 Orders</a><a href="admin.html#finance">💰 Finance</a><a href="admin.html#advertising">📣 Advertising</a><a href="admin.html#accounting">📚 Accounting</a><a href="admin.html#audit">🔐 Security & Audit</a><a href="index.html">🌐 Public Website</a>
+</aside><div class="overlay" id="overlay"></div>
+<main class="simple-page"><p class="eyebrow">SPAZA ADMINISTRATION</p><h1>Admin Centre</h1>
+<div class="steps">
+<div><b id="productCount">—</b><h3>Products</h3><p>Master catalogue</p><a class="btn" href="admin-products.html">Manage Products</a></div>
+<div><b id="sellerCount">—</b><h3>Sellers</h3><p>Marketplace partners</p><button class="btn" onclick="location.href='admin-sellers.html'">Manage Sellers</button></div>
+<div><b>💰</b><h3>Finance</h3><p>Payments, commission and payouts</p><button class="btn" onclick="location.hash='finance'">Open Finance</button></div>
+<div><b>📚</b><h3>Accounting</h3><p>Ledger and financial reports</p><button class="btn" onclick="location.hash='accounting'">Open Accounting</button></div>
+</div>
+<section id="marketplace" class="application-card"><h2>Marketplace</h2><p>Use the public catalogue while the full admin CRUD screens are connected.</p><a class="btn primary" href="shop.html">Open Catalogue</a></section>
+<section id="sellers" class="application-card"><h2>Sellers</h2><p id="sellerList">Loading…</p></section>
+<section id="orders" class="application-card"><h2>Orders</h2><p>Customer orders and seller fulfilments are stored in Supabase.</p><a class="btn" href="orders.html">Open Customer Orders View</a></section>
+<section id="finance" class="application-card"><h2>Finance</h2><p>Payments, commissions, seller balances and payouts are part of the live database.</p><button class="btn" onclick="alert('Finance tables are connected. Dedicated CRUD/report screens are the next module.')">Open Finance Module</button></section>
+<section id="advertising" class="application-card"><h2>Advertising</h2><p>Campaigns, advertisements, impressions, clicks and conversions are stored in Supabase.</p><button class="btn" onclick="alert('Advertising database module is connected.')">Open Advertising</button></section>
+<section id="accounting" class="application-card"><h2>Accounting</h2><p>Chart of accounts, journals, receivables, payables and reports are connected.</p><button class="btn" onclick="alert('Accounting database module is connected.')">Open Accounting</button></section>
+<section id="audit" class="application-card"><h2>Security & Audit</h2><p>RLS, roles and audit controls are enabled in the database.</p><button class="btn" onclick="alert('Security and audit controls are enabled in Supabase.')">View Controls</button></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/app.js"></script>
+<script>
+(async()=>{
+ try{
+  const p=await SpazaDB.from("products").select("id",{count:"exact",head:true});
+  const s=await SpazaDB.from("sellers").select("id,business_name,status").eq("status","ACTIVE");
+  document.getElementById("productCount").textContent=p.count??0;
+  document.getElementById("sellerCount").textContent=s.data?.length??0;
+  document.getElementById("sellerList").textContent=(s.data||[]).map(x=>x.business_name+" ("+x.status+")").join(" • ")||"No active sellers yet.";
+ }catch(e){document.getElementById("sellerList").textContent="Admin data requires an authorized staff account: "+e.message;}
+})();
+</script><script>
+// ROLE GUARD
+(async()=>{
+ const {data:{user}}=await SpazaDB.auth.getUser();
+ if(!user){location.href='login.html?redirect=admin.html';return}
+ const {data:rs,error}=await SpazaDB.from('profile_roles').select('roles(code)').eq('profile_id',user.id);
+ const allowed=(rs||[]).some(x=>['OWNER','ADMIN','FINANCE','MARKETING','PRODUCT_MANAGER','SUPPORT'].includes(x.roles?.code));
+ if(error||!allowed){document.body.innerHTML='<main class="simple-page"><h1>Access denied</h1><p>This area is for authorised staff and administrators.</p><a class="btn primary" href="portal.html">Back to Portal</a></main>';}
+})();
+</script></body></html>
